@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Problematic Behaviour Framework</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap');
+
+  :root {
+    --navy:    #0f1d2e;
+    --navy-mid:#1a2f47;
+    --navy-lt: #243d57;
+    --teal:    #2ec4b6;
+    --teal-lt: #3dd6c8;
+    --amber:   #f4a261;
+    --gold:    #e9c46a;
+    --white:   #f8f7f4;
+    --grey:    #c8cdd4;
+    --grey-dk: #8a95a2;
+    --row-hover: rgba(46,196,182,0.06);
+    --edited:   rgba(244,162,97,0.10);
+    --winner:   rgba(46,196,182,0.13);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--navy);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    padding: 52px 56px 36px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    font-family: 'DM Serif Display', serif;
+    font-size: 30px;
+    color: var(--white);
+    line-height: 1.15;
+    max-width: 560px;
+  }
+  .brand em { color: var(--teal); font-style: normal; }
+  .subtitle {
+    margin-top: 10px;
+    color: var(--grey-dk);
+    font-size: 13px;
+    font-weight: 300;
+    max-width: 480px;
+    line-height: 1.7;
+  }
+  .header-right {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 200px;
+    align-items: flex-end;
+  }
+  .export-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: transparent;
+    border: 1px solid var(--teal);
+    color: var(--teal);
+    padding: 8px 18px;
+    border-radius: 4px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: .03em;
+    transition: background .15s, color .15s;
+  }
+  .export-btn:hover { background: var(--teal); color: var(--navy); }
+  .export-btn svg { width: 14px; height: 14px; }
+
+  /* ── COLUMN LEGEND PANEL ── */
+  .legend-panel {
+    margin: 24px 56px 0;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .legend-toggle {
+    width: 100%;
+    background: var(--navy-mid);
+    border: none;
+    color: var(--grey);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 12px 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    transition: color .15s;
+  }
+  .legend-toggle:hover { color: var(--teal); }
+  .legend-toggle .chevron {
+    transition: transform .25s;
+    font-size: 10px;
+  }
+  .legend-toggle.open .chevron { transform: rotate(180deg); }
+  .legend-body {
+    display: none;
+    background: rgba(26,47,71,0.5);
+    padding: 20px 24px 24px;
+  }
+  .legend-body.open { display: block; }
+  .legend-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px 32px;
+  }
+  .legend-entry {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .legend-key {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--white);
+    background: var(--navy-lt);
+    padding: 2px 7px;
+    border-radius: 3px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .legend-key.editable-key { background: rgba(46,196,182,0.18); color: var(--teal); }
+  .legend-key.amber-key    { background: rgba(244,162,97,0.18);  color: var(--amber); }
+  .legend-desc {
+    font-size: 12px;
+    color: var(--grey);
+    line-height: 1.5;
+  }
+  .legend-desc strong { color: var(--white); font-weight: 500; }
+
+  /* ── TOP PICKS PANEL ── */
+  .top-panel {
+    margin: 28px 56px 0;
+    border: 1px solid rgba(46,196,182,0.25);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .top-panel-header {
+    background: rgba(46,196,182,0.1);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .top-panel-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--teal);
+  }
+  .top-panel-title svg { width: 16px; height: 16px; }
+  .top-panel-note {
+    font-size: 11px;
+    color: var(--grey-dk);
+  }
+  .top-cards {
+    padding: 16px 20px 20px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .top-card {
+    background: var(--navy-mid);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 6px;
+    padding: 12px 16px;
+    min-width: 200px;
+    flex: 1;
+    position: relative;
+    transition: border-color .2s;
+  }
+  .top-card.rank-1 {
+    border-color: rgba(46,196,182,0.5);
+    background: rgba(46,196,182,0.07);
+  }
+  .top-card.rank-2 { border-color: rgba(46,196,182,0.25); }
+  .top-card.rank-3 { border-color: rgba(46,196,182,0.12); }
+  .card-rank {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--grey-dk);
+    margin-bottom: 6px;
+  }
+  .rank-1 .card-rank { color: var(--teal); }
+  .card-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--white);
+    line-height: 1.35;
+    margin-bottom: 8px;
+  }
+  .card-score-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .card-score {
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--teal);
+  }
+  .rank-2 .card-score { font-size: 18px; color: var(--teal-lt); opacity: .8; }
+  .rank-3 .card-score { font-size: 16px; color: var(--teal-lt); opacity: .6; }
+  .card-score-label {
+    font-size: 10px;
+    color: var(--grey-dk);
+  }
+  .card-section {
+    margin-top: 6px;
+    font-size: 10px;
+    color: var(--grey-dk);
+    font-style: italic;
+  }
+  .tie-note {
+    font-size: 11px;
+    color: var(--amber);
+    padding: 0 20px 16px;
+    font-style: italic;
+  }
+
+  /* ── MAIN ── */
+  main { padding: 0 56px 80px; }
+
+  .section-label {
+    padding: 28px 0 10px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--grey-dk);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255,255,255,0.07);
+  }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  col.c-name   { width: 220px; }
+  col.c-impact { width: 74px; }
+  col.c-feas   { width: 120px; }
+  col.c-meas   { width: 120px; }
+  col.c-obj    { width: 74px; }
+  col.c-self-p { width: 78px; }
+  col.c-self-s { width: 72px; }
+  col.c-will-p { width: 78px; }
+  col.c-will-s { width: 72px; }
+  col.c-diff   { width: 72px; }
+  col.c-total  { width: 80px; }
+
+  thead { position: sticky; top: 0; z-index: 10; }
+  thead tr { background: var(--navy-mid); }
+
+  th {
+    padding: 12px 10px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--grey-dk);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    user-select: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  th.editable-col { color: var(--teal); }
+  th.meas-col     { color: var(--amber); }
+
+  td {
+    padding: 9px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 13px;
+    vertical-align: middle;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  td.name-cell {
+    font-size: 12.5px;
+    color: var(--white);
+    white-space: normal;
+    line-height: 1.4;
+    padding-right: 16px;
+  }
+
+  tbody tr { transition: background .1s; }
+  tbody tr:hover { background: var(--row-hover); }
+  tbody tr.edited  { background: var(--edited); }
+  tbody tr.is-top  { background: var(--winner); }
+  tbody tr.is-top td.name-cell { color: var(--teal); }
+
+  .score-fixed {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--grey);
+  }
+  .score-total {
+    font-family: 'DM Mono', monospace;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--white);
+  }
+
+  /* ── SLIDER CELL ── */
+  .slider-cell { display: flex; align-items: center; gap: 8px; }
+  .slider-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--teal);
+    width: 22px;
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .slider-val.amber { color: var(--amber); }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 70px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--navy-lt);
+    outline: none;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--teal);
+    box-shadow: 0 0 5px rgba(46,196,182,.5);
+    cursor: pointer;
+    transition: transform .1s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+  input[type=range].amber-slider::-webkit-slider-thumb { background: var(--amber); box-shadow: 0 0 5px rgba(244,162,97,.5); }
+
+  /* ── DOTS ── */
+  .dots-viz { display: flex; gap: 3px; align-items: center; }
+  .score-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--navy-lt);
+    transition: background .15s;
+  }
+  .score-dot.on-teal  { background: var(--teal); }
+  .score-dot.on-amber { background: var(--amber); }
+
+  /* ── RESET ── */
+  .reset-btn {
+    display: none;
+    background: transparent;
+    border: none;
+    color: var(--grey-dk);
+    cursor: pointer;
+    font-size: 10px;
+    padding: 2px 4px;
+    border-radius: 3px;
+    margin-left: 2px;
+    transition: color .15s;
+  }
+  .reset-btn:hover { color: var(--amber); }
+  tr.edited .reset-btn { display: inline-block; }
+
+  /* ── TOTAL BAR ── */
+  .bar-cell { position: relative; }
+  .bar-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: rgba(46,196,182,0.12);
+    pointer-events: none;
+    transition: width .2s;
+  }
+  .bar-cell .score-total { position: relative; z-index: 1; }
+
+  /* ── TOOLTIP ── */
+  [data-tip] { position: relative; cursor: help; }
+  [data-tip]::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--navy-mid);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: var(--grey);
+    font-size: 10px;
+    padding: 5px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .15s;
+    z-index: 100;
+  }
+  [data-tip]:hover::after { opacity: 1; }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 20px 56px;
+    color: var(--grey-dk);
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  @media (max-width: 700px) {
+    header, .legend-panel, .top-panel, main, footer { padding-left: 18px; padding-right: 18px; }
+    .legend-panel, .top-panel { margin-left: 18px; margin-right: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div>
+      <div class="brand">Problematic Behaviour<br><em>Assessment Framework</em></div>
+      <p class="subtitle">A structured tool for prioritising intervention targets. Fixed columns reflect published data; <span style="color:var(--teal)">Feasibility</span> and <span style="color:var(--amber)">Measurability</span> can be adjusted to reflect your own context.</p>
+    </div>
+    <div class="header-right">
+      <button class="export-btn" onclick="exportCSV()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M8 2v8M5 7l3 3 3-3M2 12h12v2H2z"/>
+        </svg>
+        Export as CSV
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ── COLUMN LEGEND ── -->
+<div class="legend-panel">
+  <button class="legend-toggle" id="legendToggle" onclick="toggleLegend()">
+    <span>▸ Column Descriptions</span>
+    <span class="chevron">▾</span>
+  </button>
+  <div class="legend-body" id="legendBody">
+    <div class="legend-grid">
+      <div class="legend-entry">
+        <span class="legend-key">Impact</span>
+        <div class="legend-desc"><strong>Environmental impact</strong> of changing the behaviour, scored 1–5. Higher means greater reduction in emissions or resource use.</div>
+      </div>
+      <div class="legend-entry">
+        <span class="legend-key editable-key">Feasibility</span>
+        <div class="legend-desc"><strong>How achievable</strong> the behaviour change is for your target population, given structural, economic, and social constraints. <em>Editable.</em></div>
+      </div>
+      <div class="legend-entry">
+        <span class="legend-key amber-key">Measurability</span>
+        <div class="legend-desc"><strong>How well the behaviour can be measured</strong> in your study or intervention context. <em>Editable.</em></div>
+      </div>
+      <div class="legend-entry">
+        <span class="legend-key">Obj. Meas.</span>
+        <div class="legend-desc"><strong>Objective measurement availability</strong> — whether reliable sensor or administrative data exists to track this behaviour without self-report.</div>
+      </div>
+      <div class="legend-entry">
+        <span class="legend-key">Self-rep (%)</span>
+        <div class="legend-desc"><strong>Percentage of respondents</strong> in the source survey who reported currently performing this behaviour.</div>
+      </div>
+      <div class="legend-entry">
+        <span class="legend-key">Self-rep (1–5)</span>
+        <div class="legend-desc"><strong>Self-reported behaviour score</strong> on a 1–5 scale, derived from the same survey. Higher = more respondents already doing it.</div>
+      </div>
+      <div class="legend-entry">
+        <span class="legend-key">Willing (%)</span>
+        <div class="legend-desc"><strong>Percentage willing to adopt</strong> the behaviour if prompted or supported — a proxy for intervention receptivity.</div>
+      </div>
+      <div class="legend-entry">
+        <span class="legend-key">Willing (1–5)</span>
+        <div class="legend-desc"><strong>Willingness score</strong> on a 1–5 scale. Combines stated and inferred willingness from survey data.</div>
+      </div>
+      <div class="legend-entry">
+        <span class="legend-key">Diff. Income</span>
+        <div class="legend-desc"><strong>Income-group disparity</strong> in the behaviour — how much adoption differs across socioeconomic strata. Higher = more inequitable distribution.</div>
+      </div>
+      <div class="legend-entry">
+        <span class="legend-key">Total Score</span>
+        <div class="legend-desc"><strong>Composite priority score</strong> — equal-weighted average of Impact, Feasibility, Measurability, Obj. Meas., Self-rep, Willingness, and Income difference. Updates live when you adjust sliders.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOP RECOMMENDATIONS ── -->
+<div class="top-panel" id="topPanel">
+  <div class="top-panel-header">
+    <div class="top-panel-title">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M8 1l1.8 3.6 4 .6-2.9 2.8.7 4L8 10l-3.6 1.9.7-4L2.2 5.2l4-.6z"/>
+      </svg>
+      Top Recommendations
+    </div>
+    <div class="top-panel-note">Updates live as you adjust Feasibility &amp; Measurability</div>
+  </div>
+  <div class="top-cards" id="topCards"><!-- injected --></div>
+  <div class="tie-note" id="tieNote" style="display:none"></div>
+</div>
+
+<main id="main"><!-- injected --></main>
+
+<footer>
+  <span>Scores update live · Total = equal-weighted average of all 7 criteria</span>
+  <span>Hover column headers for descriptions · Edited rows marked in amber</span>
+</footer>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────────────
+const SECTIONS = [
+  {
+    label: "Non-Energy-Saving Behaviours",
+    rows: [
+      { name: "Train instead of plane (700 km)",             impact: 5,   feas: 2, meas: 5, obj: 1, selfP: 3,    selfS: 4.88, willP: 70,   willS: 3.80, diff: 5,   total: 3.868 },
+      { name: "Buying an electric car",                       impact: 5,   feas: 1, meas: 5, obj: 5, selfP: 6,    selfS: 4.76, willP: 44,   willS: 2.76, diff: 1,   total: 3.352 },
+      { name: "Eating meat once a week",                      impact: 5,   feas: 5, meas: 3, obj: 1, selfP: 15,   selfS: 4.4,  willP: 36,   willS: 2.44, diff: 4,   total: 3.834 },
+      { name: "No meat/fish (full vegetarian diet)",          impact: 5,   feas: 5, meas: 3, obj: 1, selfP: 3,    selfS: 4.88, willP: 25,   willS: 2.00, diff: 4,   total: 3.838 },
+      { name: "Choosing a sustainable bank",                  impact: 5,   feas: 2, meas: 5, obj: 1, selfP: 18,   selfS: 4.28, willP: 47,   willS: 2.88, diff: 5,   total: 3.716 },
+    ]
+  },
+  {
+    label: "Energy-Saving Behaviours",
+    rows: [
+      { name: "Eco use of appliances & lower thermostat",     impact: 4.5, feas: 2, meas: 4, obj: 5, selfP: 33.2, selfS: 3.67, willP: 86,   willS: 4.44, diff: 4,   total: 3.811 },
+      { name: "Full electric heat pump for heating",          impact: 5,   feas: 1, meas: 5, obj: 5, selfP: 6,    selfS: 4.76, willP: 49,   willS: 2.96, diff: 4,   total: 3.822 },
+      { name: "Hybrid heat pump for heating",                 impact: 5,   feas: 1, meas: 5, obj: 5, selfP: 3,    selfS: 4.88, willP: 61,   willS: 3.44, diff: 4,   total: 3.882 },
+      { name: "Cooling with fan instead of A/C",              impact: 2.5, feas: 2, meas: 4, obj: 5, selfP: 74,   selfS: 2.04, willP: 60,   willS: 3.40, diff: 4,   total: 3.144 },
+      { name: "Cooling with sun protection instead of A/C",   impact: 2.5, feas: 2, meas: 4, obj: 5, selfP: 37,   selfS: 3.52, willP: 52,   willS: 3.08, diff: 3,   total: 3.11  },
+      { name: "A/C used for heating",                         impact: 5,   feas: 2, meas: 4, obj: 1, selfP: 5,    selfS: 4.80, willP: 58,   willS: 3.32, diff: 4,   total: 3.512 },
+      { name: "Connecting to a heat network",                 impact: 5,   feas: 1, meas: 5, obj: 5, selfP: 10,   selfS: 4.60, willP: 41,   willS: 2.64, diff: 4,   total: 3.774 },
+      { name: "Cooking on induction instead of gas",          impact: 2,   feas: 1, meas: 5, obj: 5, selfP: 39,   selfS: 3.44, willP: 72,   willS: 3.88, diff: 2,   total: 2.882 },
+      { name: "Making house entirely gas free",               impact: 5,   feas: 1, meas: 5, obj: 5, selfP: 3,    selfS: 4.88, willP: 40,   willS: 2.60, diff: 4,   total: 3.798 },
+      { name: "Solar panels on the roof",                     impact: 4,   feas: 1, meas: 5, obj: 5, selfP: 39,   selfS: 3.44, willP: 70,   willS: 3.80, diff: 4,   total: 3.574 },
+      { name: "Roof insulation",                              impact: 5,   feas: 1, meas: 5, obj: 5, selfP: 60,   selfS: 2.60, willP: 57,   willS: 3.28, diff: 4,   total: 3.638 },
+      { name: "Facade or cavity wall insulation",             impact: 5,   feas: 1, meas: 5, obj: 5, selfP: 48,   selfS: 3.08, willP: 54,   willS: 3.16, diff: 4,   total: 3.674 },
+      { name: "Floor insulation",                             impact: 3.5, feas: 1, meas: 5, obj: 5, selfP: 44,   selfS: 3.24, willP: 54,   willS: 3.16, diff: 4,   total: 3.39  },
+      { name: "Insulating glass",                             impact: 2.5, feas: 1, meas: 5, obj: 5, selfP: 48,   selfS: 3.08, willP: 63,   willS: 3.52, diff: 4,   total: 3.21  },
+      { name: "Shower max 5 minutes per time",                impact: 2.5, feas: 5, meas: 4, obj: 1, selfP: 43,   selfS: 3.28, willP: 66,   willS: 3.64, diff: 3.5, total: 3.417 },
+      { name: "Shower max 4 times a week",                    impact: 2.5, feas: 5, meas: 4, obj: 1, selfP: 61,   selfS: 2.56, willP: 59,   willS: 3.36, diff: 3.5, total: 3.317 },
+      { name: "Replace fridge with new eco model",            impact: 2,   feas: 1, meas: 5, obj: 5, selfP: 42,   selfS: 3.32, willP: 76,   willS: 4.04, diff: 4,   total: 3.186 },
+      { name: "Not having a second fridge",                   impact: 2,   feas: 4, meas: 5, obj: 5, selfP: 60,   selfS: 2.60, willP: 59,   willS: 3.36, diff: 4,   total: 3.646 },
+      { name: "Dishwasher only full & on eco mode",           impact: 2,   feas: 5, meas: 3.5,obj: 5, selfP: 46,  selfS: 3.16, willP: 96,   willS: 4.84, diff: 3.5, total: 3.75  },
+      { name: "Laundry machine only full & on eco mode",      impact: 2,   feas: 5, meas: 4, obj: 5, selfP: 32,   selfS: 3.72, willP: 94,   willS: 4.76, diff: 3.5, total: 3.873 },
+      { name: "Hanging half the laundry to dry",              impact: 2,   feas: 5, meas: 4, obj: 1, selfP: 74,   selfS: 2.04, willP: 57.9, willS: 3.3,  diff: 3.5, total: 3.161 },
+      { name: "Not having a dryer",                           impact: 2.5, feas: 4, meas: 5, obj: 5, selfP: 37,   selfS: 3.52, willP: 43,   willS: 2.72, diff: 4,   total: 3.774 },
+      { name: "Max living space of 40 m² per person",         impact: 5,   feas: 1, meas: 5, obj: 5, selfP: 41,   selfS: 3.36, willP: 32,   willS: 2.28, diff: 5,   total: 3.764 },
+    ]
+  }
+];
+
+const state = {};
+
+const COLS = [
+  { key: 'name',   label: 'Behaviour',      tip: 'Intervention target behaviour',                                   editable: false },
+  { key: 'impact', label: 'Impact',         tip: 'Environmental impact (1–5)',                                      editable: false },
+  { key: 'feas',   label: 'Feasibility',    tip: 'How feasible for your population — editable',                    editable: true,  color: 'teal' },
+  { key: 'meas',   label: 'Measurability',  tip: 'How measurable in your context — editable',                      editable: true,  color: 'amber' },
+  { key: 'obj',    label: 'Obj. Meas.',     tip: 'Objective measurement availability (1–5)',                        editable: false },
+  { key: 'selfP',  label: 'Self-rep (%)',   tip: '% who self-report doing this currently',                         editable: false },
+  { key: 'selfS',  label: 'Self-rep (1–5)', tip: 'Self-reported score on 1–5 scale',                              editable: false },
+  { key: 'willP',  label: 'Willing (%)',    tip: '% willing to adopt this behaviour',                              editable: false },
+  { key: 'willS',  label: 'Willing (1–5)',  tip: 'Willingness score on 1–5 scale',                                editable: false },
+  { key: 'diff',   label: 'Diff. Income',   tip: 'Disparity across income groups (1–5)',                           editable: false },
+  { key: 'total',  label: 'Total Score',    tip: 'Equal-weighted composite of all criteria — updates live',        editable: false, isTotal: true },
+];
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function fmt(v) {
+  if (v === null || v === undefined) return '—';
+  const n = parseFloat(v);
+  if (isNaN(n)) return v;
+  return n % 1 === 0 ? n.toString() : n.toFixed(2);
+}
+
+function currentVal(si, ri, col) {
+  const sKey = `${si}-${ri}`;
+  return (state[sKey] && state[sKey][col] !== undefined) ? state[sKey][col] : SECTIONS[si].rows[ri][col];
+}
+
+function recomputeTotal(si, ri) {
+  const r = SECTIONS[si].rows[ri];
+  const sKey = `${si}-${ri}`;
+  const feas = currentVal(si, ri, 'feas');
+  const meas = currentVal(si, ri, 'meas');
+  const t = (r.impact + feas + meas + r.obj + r.selfS + r.willS + r.diff) / 7;
+  if (!state[sKey]) state[sKey] = {};
+  state[sKey].total = Math.round(t * 1000) / 1000;
+  return state[sKey].total;
+}
+
+function getAllScored() {
+  const all = [];
+  SECTIONS.forEach((sec, si) => {
+    sec.rows.forEach((r, ri) => {
+      all.push({ si, ri, name: r.name, section: sec.label, total: currentVal(si, ri, 'total') });
+    });
+  });
+  return all;
+}
+
+function maxTotal() {
+  return Math.max(...getAllScored().map(x => x.total));
+}
+
+// ── TOP PICKS ────────────────────────────────────────────────────────────────
+function updateTopPanel() {
+  const all = getAllScored().sort((a, b) => b.total - a.total);
+  const topScore = all[0].total;
+  const THRESH = 0.005; // treat as tied if within this epsilon
+
+  // find all entries sharing the top score
+  const topGroup = all.filter(x => Math.abs(x.total - topScore) < THRESH);
+  // then show up to 3 from the rest for context
+  const runners = all.filter(x => Math.abs(x.total - topScore) >= THRESH).slice(0, Math.max(0, 3 - topGroup.length));
+  const display = [...topGroup, ...runners].slice(0, 5);
+
+  let cardsHtml = '';
+  display.forEach((item, idx) => {
+    const isTied = idx < topGroup.length;
+    const rankClass = isTied ? 'rank-1' : (idx === topGroup.length ? 'rank-2' : 'rank-3');
+    const rankLabel = isTied ? (topGroup.length > 1 ? '★ Joint Top' : '★ Top Pick') : (idx === topGroup.length ? '2nd' : '3rd');
+    cardsHtml += `
+      <div class="top-card ${rankClass}">
+        <div class="card-rank">${rankLabel}</div>
+        <div class="card-name">${item.name}</div>
+        <div class="card-score-row">
+          <span class="card-score">${fmt(item.total)}</span>
+          <span class="card-score-label">/ 5.00</span>
+        </div>
+        <div class="card-section">${item.section}</div>
+      </div>`;
+  });
+
+  document.getElementById('topCards').innerHTML = cardsHtml;
+
+  const tieNote = document.getElementById('tieNote');
+  if (topGroup.length > 1) {
+    tieNote.style.display = 'block';
+    tieNote.textContent = `${topGroup.length} behaviours share the highest score of ${fmt(topScore)} — all are equally recommended.`;
+  } else {
+    tieNote.style.display = 'none';
+  }
+
+  // highlight winning rows in table
+  document.querySelectorAll('tbody tr').forEach(tr => tr.classList.remove('is-top'));
+  topGroup.forEach(item => {
+    const tr = document.querySelector(`tr[data-skey="${item.si}-${item.ri}"]`);
+    if (tr) tr.classList.add('is-top');
+  });
+}
+
+// ── BUILD TABLE ───────────────────────────────────────────────────────────────
+function buildDots(val, max, color) {
+  const filled = Math.round(val);
+  let html = '<div class="dots-viz">';
+  for (let i = 1; i <= max; i++) {
+    html += `<div class="score-dot ${i <= filled ? 'on-'+color : ''}"></div>`;
+  }
+  return html + '</div>';
+}
+
+function buildSliderCell(si, ri, col, color) {
+  const val = currentVal(si, ri, col);
+  const sKey = `${si}-${ri}`;
+  const id = `sl-${si}-${ri}-${col}`;
+  const vid = `sv-${si}-${ri}-${col}`;
+  const did = `sd-${si}-${ri}-${col}`;
+  return `
+    <div class="slider-cell">
+      <span class="slider-val${color === 'amber' ? ' amber' : ''}" id="${vid}">${fmt(val)}</span>
+      <input type="range" id="${id}" min="1" max="5" step="0.5"
+        value="${val}" class="${color}-slider"
+        data-si="${si}" data-ri="${ri}" data-col="${col}"
+        data-vid="${vid}" data-did="${did}" data-skey="${sKey}">
+      <span id="${did}">${buildDots(val, 5, color)}</span>
+    </div>`;
+}
+
+function buildTable(si) {
+  const sec = SECTIONS[si];
+  let html = `<div class="table-wrap"><table>
+    <colgroup>
+      <col class="c-name"><col class="c-impact"><col class="c-feas"><col class="c-meas">
+      <col class="c-obj"><col class="c-self-p"><col class="c-self-s">
+      <col class="c-will-p"><col class="c-will-s"><col class="c-diff"><col class="c-total">
+    </colgroup>
+    <thead><tr>`;
+
+  COLS.forEach(c => {
+    let cls = '';
+    if (c.key === 'feas') cls = 'editable-col';
+    if (c.key === 'meas') cls = 'meas-col';
+    html += `<th class="${cls}" data-tip="${c.tip}">${c.label}</th>`;
+  });
+  html += `</tr></thead><tbody>`;
+
+  sec.rows.forEach((r, ri) => {
+    const sKey = `${si}-${ri}`;
+    const isEdited = !!state[sKey];
+    html += `<tr data-skey="${sKey}" class="${isEdited ? 'edited' : ''}">`;
+    COLS.forEach(c => {
+      if (c.key === 'name') {
+        html += `<td class="name-cell">${r.name}</td>`;
+      } else if (c.key === 'feas') {
+        html += `<td>${buildSliderCell(si, ri, 'feas', 'teal')}</td>`;
+      } else if (c.key === 'meas') {
+        html += `<td>${buildSliderCell(si, ri, 'meas', 'amber')}<button class="reset-btn" title="Reset row" onclick="resetRow('${sKey}',${si},${ri})">↺</button></td>`;
+      } else if (c.isTotal) {
+        const t = currentVal(si, ri, 'total');
+        const mxt = maxTotal() || 5;
+        const pct = Math.round((t / mxt) * 100);
+        html += `<td class="bar-cell">
+          <div class="bar-fill" style="width:${pct}%"></div>
+          <span class="score-total" id="tot-${sKey}">${fmt(t)}</span>
+        </td>`;
+      } else {
+        html += `<td class="score-fixed">${fmt(r[c.key])}</td>`;
+      }
+    });
+    html += `</tr>`;
+  });
+
+  html += `</tbody></table></div>`;
+  return html;
+}
+
+function render() {
+  const main = document.getElementById('main');
+  let html = '';
+  SECTIONS.forEach((sec, si) => {
+    html += `<div class="section-label">${sec.label}</div>`;
+    html += buildTable(si);
+  });
+  main.innerHTML = html;
+  attachListeners();
+  updateTopPanel();
+}
+
+// ── EVENTS ────────────────────────────────────────────────────────────────────
+function attachListeners() {
+  document.querySelectorAll('input[type=range]').forEach(input => {
+    input.addEventListener('input', function() {
+      const si = +this.dataset.si, ri = +this.dataset.ri;
+      const col = this.dataset.col, sKey = this.dataset.skey;
+      const val = parseFloat(this.value);
+
+      if (!state[sKey]) state[sKey] = {};
+      state[sKey][col] = val;
+
+      document.getElementById(this.dataset.vid).textContent = fmt(val);
+      const color = col === 'feas' ? 'teal' : 'amber';
+      document.getElementById(this.dataset.did).innerHTML = buildDots(val, 5, color);
+
+      const newTotal = recomputeTotal(si, ri);
+      const totEl = document.getElementById(`tot-${sKey}`);
+      if (totEl) {
+        totEl.textContent = fmt(newTotal);
+        const mxt = maxTotal() || 5;
+        const pct = Math.round((newTotal / mxt) * 100);
+        const barEl = totEl.closest('.bar-cell').querySelector('.bar-fill');
+        if (barEl) barEl.style.width = pct + '%';
+      }
+
+      const row = document.querySelector(`tr[data-skey="${sKey}"]`);
+      if (row) row.classList.add('edited');
+
+      updateTopPanel();
+    });
+  });
+}
+
+function resetRow(sKey, si, ri) {
+  delete state[sKey];
+  const row = document.querySelector(`tr[data-skey="${sKey}"]`);
+  if (!row) return;
+  row.classList.remove('edited');
+  const r = SECTIONS[si].rows[ri];
+  ['feas','meas'].forEach(col => {
+    const color = col === 'feas' ? 'teal' : 'amber';
+    const sl = document.getElementById(`sl-${si}-${ri}-${col}`);
+    if (sl) {
+      sl.value = r[col];
+      document.getElementById(`sv-${si}-${ri}-${col}`).textContent = fmt(r[col]);
+      document.getElementById(`sd-${si}-${ri}-${col}`).innerHTML = buildDots(r[col], 5, color);
+    }
+  });
+  const totEl = document.getElementById(`tot-${sKey}`);
+  if (totEl) totEl.textContent = fmt(r.total);
+  updateTopPanel();
+}
+
+function toggleLegend() {
+  const body = document.getElementById('legendBody');
+  const btn  = document.getElementById('legendToggle');
+  body.classList.toggle('open');
+  btn.classList.toggle('open');
+  btn.querySelector('span:first-child').textContent =
+    body.classList.contains('open') ? '▾ Column Descriptions' : '▸ Column Descriptions';
+}
+
+// ── EXPORT CSV ────────────────────────────────────────────────────────────────
+function exportCSV() {
+  const header = ['Behaviour','Impact','Feasibility','Measurability','Obj. Meas.','Self-rep (%)','Self-rep (1-5)','Willing (%)','Willing (1-5)','Diff. Income','Total Score'];
+  const rows = [header.join(',')];
+  SECTIONS.forEach((sec, si) => {
+    rows.push(`"${sec.label}",,,,,,,,,,`);
+    sec.rows.forEach((r, ri) => {
+      rows.push([
+        `"${r.name}"`, r.impact,
+        currentVal(si,ri,'feas'), currentVal(si,ri,'meas'), r.obj,
+        r.selfP, r.selfS, r.willP, r.willS, r.diff,
+        fmt(currentVal(si,ri,'total'))
+      ].join(','));
+    });
+  });
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'behaviour_framework.csv'; a.click();
+}
+
+render();
+</script>
+</body>
+</html>
